@@ -10,6 +10,7 @@ Frontend app for Pillar Labs Technical Assessment
 - [How to Run App](#how-to-run-app)
 - [Next Steps](#next-steps)
 - [Tools Used](#tools-used)
+- [Time Spent](#time-spent)
 
 # Stack and Dependencies
 
@@ -48,3 +49,6 @@ The file structure aims to balance modularity and verbosity within the project.
 - V0 for layout boilerplate (AI)
 - Mongo Atlas for the database
 - Vercel for hosting
+
+## Time spent
+- 2 hours
