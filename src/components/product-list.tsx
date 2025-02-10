@@ -1,20 +1,25 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { PencilIcon } from "lucide-react"
 import { useQuery } from "@tanstack/react-query"
 import AddProductModal from "./add-product-modal"
 import EditProductModal from "./edit-product-modal"
 import type { Product } from "@/models/product"
 import { SERVER_URL } from "@/models/server"
-import { useState } from "react"
+import { useState, useCallback } from "react"
+import { debounce } from "lodash"
 
 export default function ProductList() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
+  const [searchQuery, setSearchQuery] = useState("")
 
   const { data: products } = useQuery({
-    queryKey: ["products"],
+    queryKey: ["products", searchQuery],
     queryFn: async () => {
-      const response = await fetch(SERVER_URL + "/products")
+      const response = await fetch(
+        `${SERVER_URL}/products${searchQuery ? `?q=${encodeURIComponent(searchQuery)}` : ""}`,
+      )
       const res = (await response.json()).data as Product[]
       console.log(res)
       return res
@@ -29,10 +34,25 @@ export default function ProductList() {
     setEditingProduct(null)
   }
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const debouncedSearch = useCallback(
+    debounce((value: string) => {
+      setSearchQuery(value)
+    }, 300),
+    [],
+  )
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    debouncedSearch(e.target.value)
+  }
+
   return (
     <div className="container mx-auto py-10 flex flex-col gap-4">
       <h1 className="text-2xl font-bold mb-5">List of products</h1>
-      <AddProductModal />
+      <div className="flex justify-between items-center">
+        <Input type="text" placeholder="Search products by name or category..." onChange={handleSearchChange} className="max-w-sm" />
+        <AddProductModal />
+      </div>
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -67,3 +87,4 @@ export default function ProductList() {
     </div>
   )
 }
+
