@@ -9,14 +9,8 @@ export const ProductSchema = z.object({
   description: z.string().min(1),
 });
 
-// export const GetOneProductSchema = ProductSchema.pick({ id: true });
-// export const DeleteProductSchema = ProductSchema.pick({ id: true });
 export const CreateProductSchema = ProductSchema.omit({ id: true });
 export const UpdateProductSchema = ProductSchema.partial();
-// export const GetBySearchTermSchema = z.object({
-  // q: z.string().optional(),
-// })
-
 
 export type Product = z.infer<typeof ProductSchema>;
 export type CreateProduct = z.infer<typeof CreateProductSchema>;

@@ -1,6 +1,4 @@
-"use client"
-
-import React from "react"
+import { useEffect } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Button } from "@/components/ui/button"
@@ -8,64 +6,71 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
-import { PlusIcon } from "lucide-react"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import type { Product } from "@/models/product"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { CreateProduct, CreateProductSchema } from "@/models/product"
 import { SERVER_URL } from "@/models/server"
+import { UpdateProduct, UpdateProductSchema } from "@/models/product"
 
-export default function AddProductModal() {
-  const client = useQueryClient()
-  const { mutateAsync } = useMutation({
-    mutationFn: async (data: CreateProduct) => {
-      const response = await fetch( SERVER_URL + "/products", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      })
-      return response.json()
-    }
-  })
+interface EditProductModalProps {
+  product: Product | null
+  isOpen: boolean
+  onClose: () => void
+}
 
-  const [open, setOpen] = React.useState(false)
-  const form = useForm<CreateProduct>({
-    resolver: zodResolver(CreateProductSchema),
+export default function EditProductModal({ product, isOpen, onClose }: EditProductModalProps) {
+  const queryClient = useQueryClient()
+
+  const form = useForm<UpdateProduct>({
+    resolver: zodResolver(UpdateProductSchema),
     defaultValues: {
-      name: "",
-      price: 0,
-      category: "",
-      quantity: 0,
-      description: "",
+      name: product?.name || "",
+      price: product?.price || 0,
+      category: product?.category || "",
+      quantity: product?.quantity || 0,
+      description: product?.description || "",
     },
   })
 
-  async function onSubmit(values: CreateProduct) {
-    await mutateAsync(values)
-    await client.invalidateQueries({ queryKey: ["products"] })
-    setOpen(false)
-    form.reset()
+  useEffect(() => {
+    if (product) {
+      form.reset({
+        name: product.name,
+        price: product.price,
+        category: product.category,
+        quantity: product.quantity,
+        description: product.description,
+      })
+    }
+  }, [product, form])
+
+  const updateProductMutation = useMutation({
+    mutationFn: async (updatedProduct: UpdateProduct) => {
+      const response = await fetch(`${SERVER_URL}/products/${product?.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(updatedProduct),
+      })
+      return response.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["products"] })
+      onClose()
+    },
+  })
+
+  function onSubmit(values: UpdateProduct) {
+    updateProductMutation.mutateAsync(values)
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button className="mx-a max-w-40">
-          <PlusIcon className="mr-2 h-4 w-4" /> Add Product
-        </Button>
-      </DialogTrigger>
+    <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Add new product</DialogTitle>
-          <DialogDescription>Complete the form below to add a new product.</DialogDescription>
+          <DialogTitle>Edit Product</DialogTitle>
+          <DialogDescription>Modify the product details and save changes.</DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -74,9 +79,9 @@ export default function AddProductModal() {
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Name of product</FormLabel>
+                  <FormLabel>Name of Product</FormLabel>
                   <FormControl>
-                    <Input placeholder="Ingrese el nombre del producto" {...field} />
+                    <Input {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -92,7 +97,6 @@ export default function AddProductModal() {
                     <Input
                       type="number"
                       step="0.01"
-                      placeholder="0.00"
                       {...field}
                       onChange={(e) => field.onChange(Number.parseFloat(e.target.value))}
                     />
@@ -107,10 +111,10 @@ export default function AddProductModal() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Category</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Seleccione una categoría" />
+                        <SelectValue />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
@@ -134,12 +138,7 @@ export default function AddProductModal() {
                 <FormItem>
                   <FormLabel>Quantity</FormLabel>
                   <FormControl>
-                    <Input
-                      type="number"
-                      placeholder="0"
-                      {...field}
-                      onChange={(e) => field.onChange(Number.parseInt(e.target.value))}
-                    />
+                    <Input type="number" {...field} onChange={(e) => field.onChange(Number.parseInt(e.target.value))} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -152,14 +151,14 @@ export default function AddProductModal() {
                 <FormItem>
                   <FormLabel>Description</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="Describe the product" {...field} />
+                    <Textarea {...field} />
                   </FormControl>
                   <FormDescription>Max 500 characters</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            <Button type="submit">Add Product</Button>
+            <Button type="submit">Save Changes</Button>
           </form>
         </Form>
       </DialogContent>
